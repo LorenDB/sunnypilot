@@ -85,6 +85,23 @@ class ModeTransitionManager:
     self.min_mode_duration = 10
     self.mode_duration = 0
     self.emergency_override = False
+    
+    # Sensitivity settings (can be adjusted based on DEC sensitivity parameter)
+    self.confidence_threshold_change = 0.6  # For mode change
+    self.confidence_threshold_same = 0.3  # For staying in current mode
+    self.confidence_decay = 0.98
+
+  def set_sensitivity(self, low_sensitivity: bool = False):
+    """Configure transition sensitivity. Low sensitivity = smoother, less responsive transitions."""
+    if low_sensitivity:
+      self.min_mode_duration = 5  # Reduced from 10 for faster response
+      self.confidence_threshold_change = 0.5  # Reduced from 0.6 for smoother transitions
+      self.confidence_decay = 0.95  # Faster decay for quicker mode switching
+    else:
+      # Default settings
+      self.min_mode_duration = 10
+      self.confidence_threshold_change = 0.6
+      self.confidence_decay = 0.98
 
   def request_mode(self, mode: ModeType, confidence: float = 1.0, emergency: bool = False):
     # Emergency override for critical situations (stops, collisions)
@@ -104,8 +121,8 @@ class ModeTransitionManager:
     if self.mode_duration < self.min_mode_duration and not self.emergency_override:
       return
 
-    # Hysteresis: higher threshold for mode changes
-    confidence_threshold = 0.6 if mode != self.current_mode else 0.3  # Lower threshold for faster response
+    # Hysteresis: threshold for mode changes (configurable via sensitivity)
+    confidence_threshold = self.confidence_threshold_change if mode != self.current_mode else self.confidence_threshold_same
 
     if self.mode_confidence[mode] > confidence_threshold:
       if mode != self.current_mode and self.transition_timeout == 0:
@@ -122,9 +139,9 @@ class ModeTransitionManager:
     if self.emergency_override and self.mode_duration > 20:
       self.emergency_override = False
 
-    # Gradual confidence decay
+    # Gradual confidence decay (configurable via sensitivity)
     for mode in self.mode_confidence:
-      self.mode_confidence[mode] *= 0.98
+      self.mode_confidence[mode] *= self.confidence_decay
 
   def get_mode(self) -> ModeType:
     return self.current_mode
@@ -136,40 +153,17 @@ class DynamicExperimentalController:
     self._mpc = mpc
     self._params = params or Params()
     self._enabled: bool = self._params.get_bool("DynamicExperimentalControl")
+    self._sensitivity: int = self._params.get_int("DynamicExperimentalControlSensitivity")
     self._active: bool = False
     self._frame: int = 0
     self._urgency = 0.0
+    self._urgency_emergency_threshold = 0.7  # Default
 
     self._mode_manager = ModeTransitionManager()
+    
+    # Apply sensitivity settings
+    self._apply_sensitivity_settings()
 
-    # Smooth filters for stable decision making with faster response for critical scenarios
-    self._lead_filter = SmoothKalmanFilter(
-      measurement_noise=0.15,
-      process_noise=0.05,
-      alpha=1.02,
-      smoothing_factor=0.8
-    )
-
-    self._slow_down_filter = SmoothKalmanFilter(
-      measurement_noise=0.1,
-      process_noise=0.1,
-      alpha=1.05,
-      smoothing_factor=0.7
-    )
-
-    self._slowness_filter = SmoothKalmanFilter(
-      measurement_noise=0.1,
-      process_noise=0.06,
-      alpha=1.015,
-      smoothing_factor=0.92
-    )
-
-    self._mpc_fcw_filter = SmoothKalmanFilter(
-      measurement_noise=0.2,
-      process_noise=0.1,
-      alpha=1.1,
-      smoothing_factor=0.5
-    )
     self._has_lead_filtered = False
     self._has_slow_down = False
     self._has_slowness = False
@@ -184,9 +178,85 @@ class DynamicExperimentalController:
     self._expected_distance = 0.0
     self._trajectory_valid = False
 
+  def _apply_sensitivity_settings(self):
+    """Apply sensitivity settings based on DEC sensitivity parameter."""
+    low_sensitivity = (self._sensitivity == 1)
+    
+    # Configure mode manager sensitivity
+    self._mode_manager.set_sensitivity(low_sensitivity)
+    
+    if low_sensitivity:
+      # Low sensitivity: smoother, less responsive filters
+      self._urgency_emergency_threshold = 0.6  # Reduced from 0.7 for earlier emergency response
+      
+      self._lead_filter = SmoothKalmanFilter(
+        measurement_noise=0.15,
+        process_noise=0.05,
+        alpha=1.02,
+        smoothing_factor=0.75  # Reduced from 0.8 for better responsiveness
+      )
+
+      self._slow_down_filter = SmoothKalmanFilter(
+        measurement_noise=0.1,
+        process_noise=0.1,
+        alpha=1.05,
+        smoothing_factor=0.65  # Reduced from 0.7 for faster slow down detection
+      )
+
+      self._slowness_filter = SmoothKalmanFilter(
+        measurement_noise=0.1,
+        process_noise=0.06,
+        alpha=1.015,
+        smoothing_factor=0.88  # Reduced from 0.92 for more responsive slowness detection
+      )
+
+      self._mpc_fcw_filter = SmoothKalmanFilter(
+        measurement_noise=0.2,
+        process_noise=0.1,
+        alpha=1.1,
+        smoothing_factor=0.5  # Keep emergency detection highly responsive
+      )
+    else:
+      # Default sensitivity settings
+      self._urgency_emergency_threshold = 0.7
+      
+      self._lead_filter = SmoothKalmanFilter(
+        measurement_noise=0.15,
+        process_noise=0.05,
+        alpha=1.02,
+        smoothing_factor=0.8
+      )
+
+      self._slow_down_filter = SmoothKalmanFilter(
+        measurement_noise=0.1,
+        process_noise=0.1,
+        alpha=1.05,
+        smoothing_factor=0.7
+      )
+
+      self._slowness_filter = SmoothKalmanFilter(
+        measurement_noise=0.1,
+        process_noise=0.06,
+        alpha=1.015,
+        smoothing_factor=0.92
+      )
+
+      self._mpc_fcw_filter = SmoothKalmanFilter(
+        measurement_noise=0.2,
+        process_noise=0.1,
+        alpha=1.1,
+        smoothing_factor=0.5
+      )
+
   def _read_params(self) -> None:
     if self._frame % int(1. / DT_MDL) == 0:
+      prev_sensitivity = self._sensitivity
       self._enabled = self._params.get_bool("DynamicExperimentalControl")
+      self._sensitivity = self._params.get_int("DynamicExperimentalControlSensitivity")
+      
+      # Re-apply settings if sensitivity changed
+      if prev_sensitivity != self._sensitivity:
+        self._apply_sensitivity_settings()
 
   def mode(self) -> str:
     return self._mode_manager.get_mode()
@@ -317,7 +387,7 @@ class DynamicExperimentalController:
 
     # Slow down scenarios: emergency for high urgency, normal for lower urgency
     if self._has_slow_down:
-      if self._urgency > 0.7:
+      if self._urgency > self._urgency_emergency_threshold:
         # Emergency: immediate blended mode for high urgency stops
         self._mode_manager.request_mode('blended', confidence=1.0, emergency=True)
       else:
@@ -349,7 +419,7 @@ class DynamicExperimentalController:
 
     # Slow down scenarios: emergency for high urgency, normal for lower urgency
     if self._has_slow_down:
-      if self._urgency > 0.7:
+      if self._urgency > self._urgency_emergency_threshold:
         # Emergency: immediate blended mode for high urgency stops
         self._mode_manager.request_mode('blended', confidence=1.0, emergency=True)
       else:

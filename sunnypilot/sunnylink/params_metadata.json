@@ -274,6 +274,20 @@
     "title": "Dynamic Experimental Control",
     "description": ""
   },
+  "DynamicExperimentalControlSensitivity": {
+    "title": "DEC Sensitivity",
+    "description": "",
+    "options": [
+      {
+        "value": 0,
+        "label": "Default"
+      },
+      {
+        "value": 1,
+        "label": "Low"
+      }
+    ]
+  },
   "EnableCopyparty": {
     "title": "copyparty Service",
     "description": ""
