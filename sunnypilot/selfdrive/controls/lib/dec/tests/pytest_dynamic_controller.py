@@ -27,8 +27,16 @@ class MockSelfDriveState:
     self.experimentalMode = experimentalMode
 
 class MockParams:
+  def __init__(self, sensitivity=0):
+    self.sensitivity = sensitivity
+    
   def get_bool(self, name):
     return True
+    
+  def get_int(self, name):
+    if name == "DynamicExperimentalControlSensitivity":
+      return self.sensitivity
+    return 0
 
 @pytest.fixture
 def default_sm():
@@ -92,3 +100,31 @@ def test_radarless_slowdown_triggers_blended(mock_cp, mock_mpc, default_sm):
     controller.update(default_sm)
 
   assert controller.mode() == "blended"
+
+def test_default_sensitivity_settings(mock_cp, mock_mpc):
+  controller = DynamicExperimentalController(mock_cp, mock_mpc, params=MockParams(sensitivity=0))
+  assert controller._sensitivity == 0
+  assert controller._urgency_emergency_threshold == 0.7
+  assert controller._mode_manager.min_mode_duration == 10
+  assert controller._mode_manager.confidence_threshold_change == 0.6
+  assert controller._mode_manager.confidence_decay == 0.98
+
+def test_low_sensitivity_settings(mock_cp, mock_mpc):
+  controller = DynamicExperimentalController(mock_cp, mock_mpc, params=MockParams(sensitivity=1))
+  assert controller._sensitivity == 1
+  assert controller._urgency_emergency_threshold == 0.6
+  assert controller._mode_manager.min_mode_duration == 5
+  assert controller._mode_manager.confidence_threshold_change == 0.5
+  assert controller._mode_manager.confidence_decay == 0.95
+
+def test_sensitivity_affects_transition_speed(mock_cp, mock_mpc, default_sm):
+  # Test that low sensitivity creates smoother transitions
+  controller_default = DynamicExperimentalController(mock_cp, mock_mpc, params=MockParams(sensitivity=0))
+  controller_low = DynamicExperimentalController(mock_cp, mock_mpc, params=MockParams(sensitivity=1))
+  
+  # Both should have same initial mode
+  assert controller_default.mode() == "acc"
+  assert controller_low.mode() == "acc"
+  
+  # Low sensitivity should have lower threshold
+  assert controller_low._mode_manager.confidence_threshold_change < controller_default._mode_manager.confidence_threshold_change
