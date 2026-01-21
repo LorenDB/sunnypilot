@@ -92,9 +92,9 @@ class ModeTransitionManager:
     self.confidence_decay = 0.98
 
   def set_sensitivity(self, low_sensitivity: bool = False):
-    """Configure transition sensitivity. Low sensitivity = smoother, less responsive transitions."""
+    """Configure transition sensitivity. Low sensitivity = smoother, less aggressive transitions."""
     if low_sensitivity:
-      self.min_mode_duration = 5  # Reduced from 10 for faster response
+      self.min_mode_duration = 5  # Reduced for smoother, more gradual transitions
       self.confidence_threshold_change = 0.5  # Reduced from 0.6 for smoother transitions
       self.confidence_decay = 0.95  # Faster decay for quicker mode switching
     else:
@@ -186,8 +186,8 @@ class DynamicExperimentalController:
     self._mode_manager.set_sensitivity(low_sensitivity)
     
     if low_sensitivity:
-      # Low sensitivity: smoother, less responsive filters
-      self._urgency_emergency_threshold = 0.6  # Reduced from 0.7 for earlier emergency response
+      # Low sensitivity: smoother, less aggressive filters and earlier emergency detection
+      self._urgency_emergency_threshold = 0.6  # Lower threshold triggers emergency mode more readily
       
       self._lead_filter = SmoothKalmanFilter(
         measurement_noise=0.15,
