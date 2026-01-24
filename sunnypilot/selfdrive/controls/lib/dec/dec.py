@@ -136,6 +136,7 @@ class DynamicExperimentalController:
     self._mpc = mpc
     self._params = params or Params()
     self._enabled: bool = self._params.get_bool("DynamicExperimentalControl")
+    self._default_mode: int = self._params.get_int("DynamicExperimentalControlDefaultMode")
     self._active: bool = False
     self._frame: int = 0
     self._urgency = 0.0
@@ -187,12 +188,16 @@ class DynamicExperimentalController:
   def _read_params(self) -> None:
     if self._frame % int(1. / DT_MDL) == 0:
       self._enabled = self._params.get_bool("DynamicExperimentalControl")
+      self._default_mode = self._params.get_int("DynamicExperimentalControlDefaultMode")
 
   def mode(self) -> str:
     return self._mode_manager.get_mode()
 
   def enabled(self) -> bool:
     return self._enabled
+
+  def default_mode(self) -> int:
+    return self._default_mode
 
   def active(self) -> bool:
     return self._active
@@ -331,8 +336,8 @@ class DynamicExperimentalController:
       self._mode_manager.request_mode('acc', confidence=0.8)
       return
 
-    # Default: ACC
-    self._mode_manager.request_mode('acc', confidence=0.7)
+    # Default mode
+    self._mode_manager.request_mode('acc' if self.default_mode == 0 else 'blended', confidence=0.7)
 
   def _radar_mode(self) -> None:
     """Radar mode with emergency handling."""
@@ -368,8 +373,8 @@ class DynamicExperimentalController:
       self._mode_manager.request_mode('acc', confidence=0.8)
       return
 
-    # Default: ACC
-    self._mode_manager.request_mode('acc', confidence=0.7)
+    # Default mode
+    self._mode_manager.request_mode('acc' if self.default_mode == 0 else 'blended', confidence=0.7)
 
   def update(self, sm: messaging.SubMaster) -> None:
     self._read_params()
