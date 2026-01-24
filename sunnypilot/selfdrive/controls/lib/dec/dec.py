@@ -331,8 +331,8 @@ class DynamicExperimentalController:
       self._mode_manager.request_mode('acc', confidence=0.8)
       return
 
-    # Default: ACC
-    self._mode_manager.request_mode('acc', confidence=0.7)
+    # Default: blended
+    self._mode_manager.request_mode('blended', confidence=0.7)
 
   def _radar_mode(self) -> None:
     """Radar mode with emergency handling."""
@@ -368,8 +368,8 @@ class DynamicExperimentalController:
       self._mode_manager.request_mode('acc', confidence=0.8)
       return
 
-    # Default: ACC
-    self._mode_manager.request_mode('acc', confidence=0.7)
+    # Default: blended
+    self._mode_manager.request_mode('blended', confidence=0.7)
 
   def update(self, sm: messaging.SubMaster) -> None:
     self._read_params()
