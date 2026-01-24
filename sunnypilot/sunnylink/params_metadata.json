@@ -274,6 +274,20 @@
     "title": "Dynamic Experimental Control",
     "description": ""
   },
+  "DynamicExperimentalControlDefaultMode": {
+    "title": "Dynamic Experimental Control: Default Mode",
+    "description": "When the car is driving normally with no lead car, the selected mode will be used. ACC prioritizes maintaining speed while Experimental is better at anticipating stops.",
+    "options": [
+      {
+        "value": 0,
+        "label": "ACC"
+      },
+      {
+        "value": 1,
+        "label": "Experimental"
+      }
+    ]
+  },
   "EnableCopyparty": {
     "title": "copyparty Service",
     "description": ""
