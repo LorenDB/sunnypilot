@@ -184,7 +184,7 @@ class SpeedLimitAssist:
     self.v_cruise_cluster_conv = round(self.v_cruise_cluster * speed_conv)
 
     # Use the speed limit as the target for both PCM and non-PCM modes
-    # SLA will work within the bounds of the current set speed
+    # SLA activates when the user adjusts cruise speed to match the speed limit
     self.target_set_speed_conv = self.speed_limit_final_last_conv
 
   @property
