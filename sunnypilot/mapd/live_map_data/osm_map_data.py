@@ -59,3 +59,9 @@ class OsmMapData(BaseMapData):
       next_speed_limit_distance = (self.last_position or Coordinate(0, 0)).distance_to(next_speed_limit_coordinates)
 
     return next_speed_limit, next_speed_limit_distance
+
+  def get_current_highway_rank(self) -> int:
+    return int(self.mem_params.get("MapHighwayRank") or 0)
+
+  def get_on_way(self) -> bool:
+    return bool(self.mem_params.get("MapOnWay") == "1")

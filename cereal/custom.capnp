@@ -442,6 +442,8 @@ struct LiveMapDataSP @0xf416ec09499d9d19 {
   speedLimitAhead @3 :Float32;
   speedLimitAheadDistance @4 :Float32;
   roadName @5 :Text;
+  highwayRank @6 :Int32;
+  onWay @7 :Bool;
 }
 
 struct ModelDataV2SP @0xa1680744031fdb2d {

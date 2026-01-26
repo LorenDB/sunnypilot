@@ -276,7 +276,7 @@
   },
   "DynamicExperimentalControlDefaultMode": {
     "title": "Dynamic Experimental Control: Default Mode",
-    "description": "When the car is driving normally with no lead car, the selected mode will be used. ACC prioritizes maintaining speed while Experimental is better at anticipating stops.",
+    "description": "When the car is driving normally with no lead car, the selected mode will be used. ACC prioritizes maintaining speed while Experimental is better at anticipating stops. Road-dependent mode will only activate ACC on major roadways; residential roads, service roads, private lanes, and off-roading will fully rely on experimental mode.",
     "options": [
       {
         "value": 0,
@@ -285,6 +285,10 @@
       {
         "value": 1,
         "label": "Experimental"
+      },
+      {
+        "value": 2,
+        "label": "Road-dependent"
       }
     ]
   },

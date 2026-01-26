@@ -180,6 +180,8 @@ class DynamicExperimentalController:
     self._has_standstill = False
     self._mpc_fcw_crash_cnt = 0
     self._standstill_count = 0
+    self._highway_rank = 0
+    self._on_way = False
     # debug
     self._endpoint_x = float('inf')
     self._expected_distance = 0.0
@@ -210,10 +212,15 @@ class DynamicExperimentalController:
     car_state = sm['carState']
     lead_one = sm['radarState'].leadOne
     md = sm['modelV2']
+    map_data = sm['liveMapDataSP']
 
     self._v_ego_kph = car_state.vEgo * 3.6
     self._v_cruise_kph = car_state.vCruise
     self._has_standstill = car_state.standstill
+
+    # Map data
+    self._highway_rank = map_data.highwayRank
+    self._on_way = map_data.onWay
 
     # standstill detection
     if self._has_standstill:
@@ -310,6 +317,12 @@ class DynamicExperimentalController:
   def _radarless_mode(self) -> None:
     """Radarless mode decision logic with emergency handling."""
 
+    # If auto mode is enabled, blended is enforced for minor roads or when not on a known road
+    # Rank 50 or higher is a minor highway according to mapd. Presumably mapd will not change this.
+    if self.default_mode == 2 and (self._highway_rank >= 50 or not self._on_way):
+      self._mode_manager.request_mode('blended', confidence=1.0)
+      return
+
     # EMERGENCY: MPC FCW - immediate blended mode
     if self._has_mpc_fcw:
       self._mode_manager.request_mode('blended', confidence=1.0, emergency=True)
@@ -341,6 +354,12 @@ class DynamicExperimentalController:
 
   def _radar_mode(self) -> None:
     """Radar mode with emergency handling."""
+
+    # If auto mode is enabled, blended is enforced for minor roads or when not on a known road
+    # Rank 50 or higher is a minor highway according to mapd. Presumably mapd will not change this.
+    if self.default_mode == 2 and (self._highway_rank >= 50 or not self._on_way):
+      self._mode_manager.request_mode('blended', confidence=1.0)
+      return
 
     # EMERGENCY: MPC FCW - immediate blended mode
     if self._has_mpc_fcw:
