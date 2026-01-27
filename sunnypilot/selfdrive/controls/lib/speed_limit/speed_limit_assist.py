@@ -113,7 +113,7 @@ class SpeedLimitAssist:
 
   @property
   def target_set_speed_confirmed(self) -> bool:
-    return bool(self.v_cruise_cluster_conv == self.target_set_speed_conv)
+    return bool(self.v_cruise_cluster_conv >= self.target_set_speed_conv and self._speed_limit <= self.target_set_speed_conv)
 
   @property
   def v_cruise_cluster_below_confirm_speed_threshold(self) -> bool:
@@ -187,7 +187,7 @@ class SpeedLimitAssist:
                             cst_high
     pcm_long_required_max_set_speed_conv = round(pcm_long_required_max * speed_conv)
 
-    self.target_set_speed_conv = pcm_long_required_max_set_speed_conv if self.pcm_op_long else self.speed_limit_final_last_conv
+    self.target_set_speed_conv = self.speed_limit_final_last_conv
 
   @property
   def apply_confirm_speed_threshold(self) -> bool:
