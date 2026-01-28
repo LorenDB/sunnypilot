@@ -40,6 +40,8 @@ class FakeRequest:
 
 
 class FakeResponse:
+  """Fake response for testing. Returns 201 Created which is the semantically
+  correct status code for WebDAV PUT operations that create new resources."""
   def __init__(self):
     self.status_code = 201
     self.request = FakeRequest()
@@ -153,12 +155,11 @@ class WebDAVUploader:
       try:
         # Try MKCOL to create directory (will fail if exists, which is fine)
         response = requests.request('MKCOL', dir_url, auth=auth, timeout=10)
-        # 201 = created, 405 = already exists (method not allowed), 301 = exists (redirect)
-        if response.status_code not in (201, 405, 301):
+        # 201 = created, 405 = already exists (method not allowed)
+        if response.status_code not in (201, 405):
           cloudlog.debug("webdav_mkdir status %d for %s", response.status_code, dir_url)
       except Exception:
-        # Directory might already exist or request failed - continue anyway
-        pass
+        cloudlog.exception("webdav_mkdir failed for %s", dir_url)
 
     return True
 
@@ -167,6 +168,10 @@ class WebDAVUploader:
 
     if not endpoint:
       raise ValueError("WebDAV endpoint not configured")
+
+    # Warn if not using HTTPS
+    if not endpoint.lower().startswith('https://'):
+      cloudlog.warning("WebDAV endpoint is not using HTTPS - credentials will be sent in cleartext")
 
     auth = (username, password) if username and password else None
 
@@ -240,7 +245,7 @@ class WebDAVUploader:
       try:
         setxattr(fn, UPLOAD_ATTR_NAME, UPLOAD_ATTR_VALUE)
       except OSError:
-        cloudlog.event("webdav_uploader_setxattr_failed", exc=last_exc, key=key, fn=fn, sz=sz)
+        cloudlog.event("webdav_uploader_setxattr_failed", key=key, fn=fn, sz=sz)
 
     return success
 
