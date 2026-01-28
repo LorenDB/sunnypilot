@@ -13,6 +13,7 @@ venv/
 a.out
 .hypothesis
 .cache/
+_codeql_detected_source_root
 
 /docs_site/
 
