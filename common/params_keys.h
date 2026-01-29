@@ -209,6 +209,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // WebDAV uploader params
     {"WebDAVEnabled", {PERSISTENT | BACKUP, BOOL}},
     {"WebDAVEndpoint", {PERSISTENT | BACKUP | DONT_LOG, STRING}},
+    {"WebDAVFolder", {PERSISTENT | BACKUP, STRING}},
     {"WebDAVUsername", {PERSISTENT | BACKUP | DONT_LOG, STRING}},
     {"WebDAVPassword", {PERSISTENT | BACKUP | DONT_LOG, STRING}},
 

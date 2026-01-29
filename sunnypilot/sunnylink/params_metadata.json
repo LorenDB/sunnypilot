@@ -1350,7 +1350,11 @@
   },
   "WebDAVEndpoint": {
     "title": "WebDAV Endpoint URL",
-    "description": "The URL of the WebDAV server to upload drive data to"
+    "description": "The URL of the WebDAV server to upload drive data to (e.g., https://webdav.example.com/dav/)"
+  },
+  "WebDAVFolder": {
+    "title": "WebDAV Remote Folder",
+    "description": "The folder path on the WebDAV server where drive data will be uploaded (e.g., sunnypilot/drives)"
   },
   "WebDAVUsername": {
     "title": "WebDAV Username",

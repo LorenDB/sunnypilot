@@ -1,17 +1,18 @@
 from openpilot.common.params import Params
 
 
-def get_webdav_config(params=None) -> tuple[bool, str | None, str | None, str | None]:
+def get_webdav_config(params=None) -> tuple[bool, str | None, str | None, str | None, str | None]:
   """Get the WebDAV configuration.
 
-  Returns a tuple of (is_enabled, endpoint, username, password).
+  Returns a tuple of (is_enabled, endpoint, folder, username, password).
   """
   params = params or Params()
   is_enabled = params.get_bool("WebDAVEnabled")
   endpoint = params.get("WebDAVEndpoint")
+  folder = params.get("WebDAVFolder")
   username = params.get("WebDAVUsername")
   password = params.get("WebDAVPassword")
-  return is_enabled, endpoint, username, password
+  return is_enabled, endpoint, folder, username, password
 
 
 def webdav_ready(params=None) -> bool:
@@ -20,7 +21,7 @@ def webdav_ready(params=None) -> bool:
   WebDAV is ready when it's enabled and has a valid endpoint configured.
   """
   params = params or Params()
-  is_enabled, endpoint, _, _ = get_webdav_config(params)
+  is_enabled, endpoint, _, _, _ = get_webdav_config(params)
   return is_enabled and endpoint is not None and len(endpoint) > 0
 
 

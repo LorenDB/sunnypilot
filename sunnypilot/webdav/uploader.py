@@ -164,7 +164,7 @@ class WebDAVUploader:
     return True
 
   def do_upload(self, key: str, fn: str) -> requests.Response | FakeResponse:
-    _, endpoint, username, password = get_webdav_config(self.params)
+    _, endpoint, folder, username, password = get_webdav_config(self.params)
 
     if not endpoint:
       raise ValueError("WebDAV endpoint not configured")
@@ -175,9 +175,14 @@ class WebDAVUploader:
 
     auth = (username, password) if username and password else None
 
-    # Build the upload URL with dongle_id prefix
-    # URL structure: {endpoint}/{dongle_id}/{key}
-    upload_path = f"{self.dongle_id}/{key}"
+    # Build the upload URL with optional folder prefix and dongle_id
+    # URL structure: {endpoint}/{folder}/{dongle_id}/{key}
+    # If folder is not set or empty, uses: {endpoint}/{dongle_id}/{key}
+    folder_stripped = folder.strip('/') if folder else ""
+    if folder_stripped:
+      upload_path = f"{folder_stripped}/{self.dongle_id}/{key}"
+    else:
+      upload_path = f"{self.dongle_id}/{key}"
     upload_url = urljoin(endpoint.rstrip('/') + '/', quote(upload_path))
 
     cloudlog.debug("webdav upload_url %s", upload_url)
