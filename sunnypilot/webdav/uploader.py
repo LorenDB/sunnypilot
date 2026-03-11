@@ -294,10 +294,28 @@ def main(exit_event: threading.Event | None = None) -> None:
     sm.update(0)
     offroad = params.get_bool("IsOffroad")
     network_type = sm['deviceState'].networkType if not force_wifi else NetworkType.wifi
+
+    # If network type is reported as none, attempt a connection before assuming no connectivity
     if network_type == NetworkType.none:
-      if allow_sleep:
-        time.sleep(60 if offroad else 5)
-      continue
+      # Try to verify connectivity by checking if we can reach the WebDAV endpoint
+      _, endpoint, _, username, password = get_webdav_config(params)
+      has_connectivity = False
+
+      if endpoint:
+        try:
+          auth = (username, password) if username and password else None
+          # Attempt a lightweight HEAD request with short timeout to check connectivity
+          response = requests.head(endpoint, auth=auth, timeout=5)
+          has_connectivity = True
+          cloudlog.debug("webdav connectivity check succeeded despite network_type=none")
+        except Exception:
+          # Connection failed, no connectivity available
+          pass
+
+      if not has_connectivity:
+        if allow_sleep:
+          time.sleep(60 if offroad else 5)
+        continue
 
     success = uploader.step(sm['deviceState'].networkType.raw, sm['deviceState'].networkMetered)
     if success is None:
